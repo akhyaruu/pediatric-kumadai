@@ -1,0 +1,23 @@
+# Generated data (results of prepare_data.py)
+data_app/*
+!data_app/dicts_diagnosis/
+
+# Python caches and build artefacts
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+*.egg-info/
+build/
+dist/
+
+# Editor and OS files
+.idea/
+.vscode/
+*.swp
+.DS_Store
+Thumbs.db
+desktop.ini
