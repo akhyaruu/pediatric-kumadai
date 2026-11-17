@@ -3,6 +3,9 @@ data_app/
 # data_app/*
 # !data_app/dicts_diagnosis/
 
+# Training outputs (logs, checkpoints, ROC/PR curves)
+runs/
+
 # Python caches and build artefacts
 __pycache__/
 *.py[cod]

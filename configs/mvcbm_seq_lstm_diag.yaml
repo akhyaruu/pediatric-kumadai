@@ -1,0 +1,92 @@
+# Diagnosis, pediatric appendicitis: MVCBM, sequential training, LSTM fusion.
+# Copied from pediatric-mvcbm-ssmvcbm/configs/repro/mvcbm_seq_lstm_diag.yaml (based on configs/config_app_mvcbm.yaml).
+# Relative paths are relative to the project folder. On Kaggle, the notebook overrides the data paths and
+# log_directory (see kaggle_setup.py); these defaults are for a local run after prepare_data.py.
+
+# --------------------------
+#         Experiment
+# --------------------------
+experiment_name: 'mvcbm-app'
+run_name: 'mvcbm_seq_lstm_diag'
+seed: 42
+validate: False
+k_folds: 5
+device: 'cuda'
+# [repro] mixed precision (float16) for the forward pass; set to False to reproduce float32 training
+amp: True
+# [kumadai] print-outs go to the log file and to the console/notebook
+log_to_console: True
+workers: 2
+log_directory: 'runs/mvcbm_seq_lstm_diag'
+model_directory: 'pretrained_models'
+
+# --------------------------
+#         Dataset
+# --------------------------
+dataset: 'app'
+num_classes: 2
+images: 'data_app/preprocessed_400'
+test_images: 'data_app/preprocessed_400'
+dict_file: 'data_app/dicts_diagnosis/imputed/final/app_data_train'
+dict_file_test: 'data_app/dicts_diagnosis/imputed/final/app_data_test'
+preload: False
+
+# --------------------------
+#         Augmentation
+# --------------------------
+augmentation: True
+aug_per_sample: 1
+hist_equal: True
+normalize: False
+brightness: True
+rotate: True
+shear: True
+resize: True
+gamma: True
+sharpness: True
+gaussian_noise: True
+poisson_noise: False
+SP_noise: False
+zero_rect: 0.05
+
+# --------------------------
+#         Model
+# --------------------------
+model: 'MVCBM'
+encoder_arch: 'ResNet18'
+aggregator: 'lstm'
+training_mode: 'sequential'
+alpha: 1.0
+num_concepts: 2  # [repro] temporary: Appendix_on_US, Free_Fluids (paper: 9)
+t_hidden_dim: 5
+norm_bottleneck: False
+attention: False
+
+# --------------------------
+#         Training
+# --------------------------
+c_epochs: 20
+c_learning_rate: 0.0001
+
+t_epochs: 20
+t_learning_rate: 0.01
+
+j_epochs: 40
+j_learning_rate: 0.001
+
+train_batch_size: 4
+val_batch_size: 4
+
+optimizer: 'adam'
+
+decrease_every: 150
+lr_divisor: 2
+
+weight_decay: 0
+
+validate_every_epoch: False
+
+# --------------------------
+#     Additional features
+# --------------------------
+ex_features: []
