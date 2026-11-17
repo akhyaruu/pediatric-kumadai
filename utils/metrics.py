@@ -1,6 +1,7 @@
 """
 Utility functions for model evaluation metrics
 """
+import inspect
 import os
 from pathlib import Path
 from shutil import rmtree
@@ -14,6 +15,17 @@ from sklearn.metrics import (PrecisionRecallDisplay, RocCurveDisplay,
                              recall_score, roc_auc_score, balanced_accuracy_score, det_curve)
 
 matplotlib.use("Agg")
+
+
+def _curve_style(display_cls, alpha=0.3, lw=1):
+    """
+    [kumadai] Line style for RocCurveDisplay / PrecisionRecallDisplay.from_predictions. Newer scikit-learn versions
+    take it as curve_kwargs (passing alpha/lw directly fails, e.g. on Kaggle); older versions take keyword arguments.
+    """
+    style = {"alpha": alpha, "lw": lw}
+    if "curve_kwargs" in inspect.signature(display_cls.from_predictions).parameters:
+        return {"curve_kwargs": style}
+    return style
 
 
 class ROC:
@@ -45,9 +57,8 @@ class ROC:
             y_true,
             y_pred,
             name=f"ROC fold {fold}",
-            alpha=0.3,
-            lw=1,
-            ax=self.axes[epoch]
+            ax=self.axes[epoch],
+            **_curve_style(RocCurveDisplay),
         )
         interp_tpr = np.interp(self.mean_fpr, viz.fpr, viz.tpr)
         interp_tpr[0] = 0.0
@@ -142,9 +153,8 @@ class PRC:
             y_true,
             y_pred,
             name=f"PR fold {fold}",
-            alpha=0.3,
-            lw=1,
-            ax=self.axes[epoch]
+            ax=self.axes[epoch],
+            **_curve_style(PrecisionRecallDisplay),
         )
         interp_prec = np.interp(self.mean_recall, viz.recall[::-1], viz.precision[::-1])
         interp_prec[0] = 1.0

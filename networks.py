@@ -473,6 +473,19 @@ class SSMVCBM(nn.Module):
 			   target_pred_probs, target_pred_logits
 
 
+def _load_resnet_weights(path):
+	"""
+	[kumadai] Load the ImageNet ResNet-18 weights (torchvision file resnet18-5c106cde.pth, legacy .tar format).
+	PyTorch >= 2.6 loads with weights_only=True by default, which cannot read this format, so weights_only=False is
+	passed explicitly. This is only done for this file: it is the official torchvision file (its SHA-256 starts with
+	5c106cde, as its name says). Older PyTorch versions without the argument are also supported.
+	"""
+	try:
+		return load(path, map_location="cpu", weights_only=False)
+	except TypeError:
+		return load(path, map_location="cpu")
+
+
 class ResNet18(nn.Module):
 	"""
 	Pretrained ResNet-18 from PyTorch
@@ -490,9 +503,9 @@ class ResNet18(nn.Module):
 			self.model = models.resnet18(pretrained=False)
 		# NOTE: weights can pre-downloaded from https://github.com/fregu856/deeplabv3
 		if model_directory is not None:
-			self.model.load_state_dict(load(os.path.join(model_directory, 'resnet/resnet18-5c106cde.pth')))
+			self.model.load_state_dict(_load_resnet_weights(os.path.join(model_directory, 'resnet/resnet18-5c106cde.pth')))
 		else:
-			self.model.load_state_dict(load("./models/resnet/resnet18-5c106cde.pth"))
+			self.model.load_state_dict(_load_resnet_weights("./models/resnet/resnet18-5c106cde.pth"))
 		ftrs = self.model.fc.in_features
 
 		# Change network output to binary classification
