@@ -5,7 +5,7 @@ The preprocessed data (results of prepare_data.py, made locally) are uploaded as
 contains the folders
     preprocessed_400/                         images, cropped and resized
     dicts_diagnosis/imputed/final/            app_data_train, app_data_test (data dictionaries)
-Kaggle mounts the dataset read-only under /kaggle/input while the outputs are written to /kaggle/working.
+Kaggle mounts the dataset read-only under /kaggle/input; outputs are written to /kaggle/working.
 """
 
 import os
@@ -20,7 +20,7 @@ KAGGLE_WORKING = "/kaggle/working"
 PROJECT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 RESNET_FILE = "resnet18-5c106cde.pth"
-# Torchvision download of the same file (used only when the weights are not in the repository)
+# torchvision download of the same file (used only when the weights are not in the repository)
 RESNET_URL = "https://download.pytorch.org/models/" + RESNET_FILE
 
 IMAGES_DIR = "preprocessed_400"
@@ -32,17 +32,15 @@ def on_kaggle():
     return os.path.isdir(KAGGLE_INPUT) and os.path.isdir(KAGGLE_WORKING)
 
 
-def find_data(input_root=KAGGLE_INPUT, max_depth=6):
+def find_data(input_root=KAGGLE_INPUT):
     """
     Search input_root for the preprocessed data and return a dict with the paths of the images folder and of the
-    train/test data dictionaries. The exact location inside the Kaggle dataset does not matter (Kaggle may add a
-    folder level, e.g. when a zip file is uploaded).
+    train/test data dictionaries. The exact location inside the Kaggle dataset does not matter (Kaggle adds its own
+    folder levels, and the uploaded folder may have a parent such as pediatric/data_app/).
     """
     found = {"images": [], "dict_file": [], "dict_file_test": []}
-    root_depth = input_root.rstrip(os.sep).count(os.sep)
+    similar = []  # files named app_data* in other places, reported when the dictionaries are not found
     for dirpath, dirnames, filenames in os.walk(input_root, followlinks=True):
-        if dirpath.count(os.sep) - root_depth >= max_depth:
-            dirnames[:] = []
         if os.path.basename(dirpath) == IMAGES_DIR:
             found["images"].append(dirpath)
             dirnames[:] = []  # do not walk the 1,700 images
@@ -53,6 +51,8 @@ def find_data(input_root=KAGGLE_INPUT, max_depth=6):
                 found["dict_file"].append(path)
             elif path.endswith(os.sep + DICT_TEST):
                 found["dict_file_test"].append(path)
+            elif name.startswith("app_data"):
+                similar.append(path)
 
     problems = []
     for key, what in [("images", f"folder '{IMAGES_DIR}'"), ("dict_file", DICT_TRAIN), ("dict_file_test", DICT_TEST)]:
@@ -61,6 +61,8 @@ def find_data(input_root=KAGGLE_INPUT, max_depth=6):
         elif len(found[key]) > 1:
             problems.append(f"{what} found more than once: {found[key]}")
     if problems:
+        if similar:
+            problems.append("Files named app_data* that were found:\n  " + "\n  ".join(sorted(similar)))
         raise FileNotFoundError(
             "\n".join(problems) + "\nAdd the preprocessed dataset to the notebook (Add Input) and check its folders."
         )
@@ -71,7 +73,7 @@ def find_data(input_root=KAGGLE_INPUT, max_depth=6):
 
 
 def ensure_resnet_weights(model_directory=os.path.join(PROJECT_DIR, "pretrained_models")):
-    """Make sure the ResNet-18 weights used by the encoder exist, download them if they are missing (needs Internet)."""
+    """Make sure the ResNet-18 weights used by the encoder exist; download them if they are missing (needs Internet)."""
     path = os.path.join(model_directory, "resnet", RESNET_FILE)
     if os.path.exists(path):
         print(f"ResNet-18 weights: {path}")
