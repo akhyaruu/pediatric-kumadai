@@ -1,6 +1,7 @@
 # Generated data (results of prepare_data.py)
-data_app/*
-!data_app/dicts_diagnosis/
+data_app/
+# data_app/*
+# !data_app/dicts_diagnosis/
 
 # Python caches and build artefacts
 __pycache__/
