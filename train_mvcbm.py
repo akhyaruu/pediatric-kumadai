@@ -6,7 +6,9 @@ and reduced to the MVCBM on the 'app' dataset. The training code is unchanged; c
   - only the 'app' dataset and the MVCBM / CBM models are kept (no MAwA, synthetic data or SSMVCBM),
   - print-outs go to the log file AND to the console/notebook (config['log_to_console'], default True),
   - a function run() that can be called from a notebook, with optional config overrides,
-  - train_mvcbm() returns the test metrics of the last epoch.
+  - train_mvcbm() returns the test metrics of the last epoch,
+  - c_results has room for the Brier score returned by CMetrics.get_cMetrics() (the original code had one column
+    too few, which raised 'could not broadcast input array from shape (5,) into shape (4,)').
 
 Command line:
     python train_mvcbm.py --config configs/mvcbm_seq_lstm_diag.yaml --seed 42
@@ -85,6 +87,9 @@ def _open_log(config, console):
 # Training code copied from train.py (tabs converted to spaces)
 # ---------------------------------------------------------------------------------------------------------------------
 _SCALER = None
+
+# [kumadai] columns of c_results: concept loss + the values of CMetrics.get_cMetrics()
+C_METRIC_NAMES = ["loss", "accuracy", "f1_macro", "auroc", "aupr", "brier"]
 
 
 def create_optimizer(config, model, mode):
@@ -351,7 +356,7 @@ def train_mvcbm_kfold(config, gen):
         c_epochs = None
         t_epochs = config["t_epochs"]
 
-    c_results = np.empty((config["k_folds"], c_epochs, config["num_concepts"], (4 + 1))) if c_epochs is not None else None
+    c_results = np.full((config["k_folds"], c_epochs, config["num_concepts"], len(C_METRIC_NAMES)), np.nan) if c_epochs is not None else None  # [kumadai]
     t_results = np.empty((config["k_folds"], t_epochs, (11 + 3)))  # 11 metrics + 3 loss functions
     roc = ROC(config["k_folds"], range(1, t_epochs + 1))
     pr = PRC(config["k_folds"], range(1, t_epochs + 1))
@@ -416,7 +421,8 @@ def train_mvcbm_kfold(config, gen):
 
                 for concept_idx in range(len(concepts_loss)):
                     c_results[fold, epoch, concept_idx, 0] = concepts_loss[concept_idx]
-                    c_results[fold, epoch, concept_idx, 1:5] = all_cMetrics[concept_idx].get_cMetrics()
+                    c_metrics = all_cMetrics[concept_idx].get_cMetrics()  # [kumadai] 4 or 5 values (with Brier score)
+                    c_results[fold, epoch, concept_idx, 1:1 + len(c_metrics)] = c_metrics
 
                 print_epoch_val_scores(
                     config, mode, target_loss, concepts_loss, summed_concepts_loss, total_loss, tMetrics,
@@ -459,7 +465,8 @@ def train_mvcbm_kfold(config, gen):
                     config["training_mode"] == "joint":
                 for concept_idx in range(len(concepts_loss)):
                     c_results[fold, epoch, concept_idx, 0] = concepts_loss[concept_idx]
-                    c_results[fold, epoch, concept_idx, 1:5] = all_cMetrics[concept_idx].get_cMetrics()
+                    c_metrics = all_cMetrics[concept_idx].get_cMetrics()  # [kumadai] 4 or 5 values (with Brier score)
+                    c_results[fold, epoch, concept_idx, 1:1 + len(c_metrics)] = c_metrics
 
             print_epoch_val_scores(
                 config, mode, target_loss, concepts_loss, summed_concepts_loss, total_loss, tMetrics,
@@ -542,7 +549,7 @@ def train_mvcbm(config, gen):
         c_epochs = None
         t_epochs = config["t_epochs"]
 
-    c_results = np.empty((c_epochs, config["num_concepts"], (4 + 1))) if c_epochs is not None else None
+    c_results = np.full((c_epochs, config["num_concepts"], len(C_METRIC_NAMES)), np.nan) if c_epochs is not None else None  # [kumadai]
     t_results = np.empty((t_epochs, (17 + 3)))  # 17 metrics + 3 losses
 
     # Instantiate dataloaders
@@ -588,7 +595,8 @@ def train_mvcbm(config, gen):
 
                 for concept_idx in range(len(concepts_loss)):
                     c_results[epoch, concept_idx, 0] = concepts_loss[concept_idx]
-                    c_results[epoch, concept_idx, 1:6] = all_cMetrics[concept_idx].get_cMetrics()
+                    c_metrics = all_cMetrics[concept_idx].get_cMetrics()  # [kumadai] 4 or 5 values (with Brier score)
+                    c_results[epoch, concept_idx, 1:1 + len(c_metrics)] = c_metrics
 
                 print_epoch_val_scores(config, mode, target_loss, concepts_loss,
                                        summed_concepts_loss, total_loss, tMetrics, all_cMetrics,
@@ -637,7 +645,8 @@ def train_mvcbm(config, gen):
                     config["training_mode"] == "joint":
                 for concept_idx in range(len(concepts_loss)):
                     c_results[epoch, concept_idx, 0] = concepts_loss[concept_idx]
-                    c_results[epoch, concept_idx, 1:6] = all_cMetrics[concept_idx].get_cMetrics()
+                    c_metrics = all_cMetrics[concept_idx].get_cMetrics()  # [kumadai] 4 or 5 values (with Brier score)
+                    c_results[epoch, concept_idx, 1:1 + len(c_metrics)] = c_metrics
 
             print_epoch_val_scores(
                 config, mode, target_loss, concepts_loss, summed_concepts_loss, total_loss, tMetrics, all_cMetrics,
@@ -657,14 +666,13 @@ def train_mvcbm(config, gen):
 
         if config['dataset'] != 'mawa':
             for concept_idx in range(config["num_concepts"]):
-                c_metric_names = [f"sc{concept_idx}_loss", f"sc{concept_idx}_accuracy",
-                                  f"sc{concept_idx}_f1_macro", f"sc{concept_idx}_auroc", f"sc{concept_idx}_aupr"]
+                c_metric_names = [f"sc{concept_idx}_{name}" for name in C_METRIC_NAMES]
                 print(f"(Concept {concept_idx}) Test results on last epoch: ")
                 for metric_idx, metric_name in enumerate(c_metric_names):
                     print(f"    {metric_name}: {c_results[-1, concept_idx, metric_idx]}")
 
         print(f"Averaged concepts test metrics on last epoch:")
-        c_metric_names = [f"loss", f"accuracy", f"f1_macro", f"auroc", f"aupr"]
+        c_metric_names = C_METRIC_NAMES
         for metric_idx, metric_name in enumerate(c_metric_names):
             print(f"    {metric_name}: {sum([c_results[-1, i, metric_idx] for i in range(config['num_concepts'])]) / config['num_concepts']}")
 
@@ -684,7 +692,7 @@ def train_mvcbm(config, gen):
     results = {name: float(t_results[-1, idx]) for idx, name in enumerate(t_metric_names)}
     if c_results is not None:
         for concept_idx in range(config["num_concepts"]):
-            for metric_idx, metric_name in enumerate(["loss", "accuracy", "f1_macro", "auroc", "aupr"]):
+            for metric_idx, metric_name in enumerate(C_METRIC_NAMES):
                 results[f"c{concept_idx}_{metric_name}"] = float(c_results[-1, concept_idx, metric_idx])
     results["confusion_matrix"] = np.asarray(conf_matrix).tolist()
     return results
