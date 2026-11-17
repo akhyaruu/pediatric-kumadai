@@ -1,7 +1,6 @@
 """
 Utility functions for model evaluation metrics
 """
-
 import os
 from pathlib import Path
 from shutil import rmtree
@@ -9,20 +8,10 @@ from shutil import rmtree
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
-from sklearn.metrics import (
-    PrecisionRecallDisplay,
-    RocCurveDisplay,
-    accuracy_score,
-    auc,
-    confusion_matrix,
-    f1_score,
-    precision_recall_curve,
-    precision_score,
-    recall_score,
-    roc_auc_score,
-    balanced_accuracy_score,
-    det_curve,
-)
+from sklearn.metrics import (PrecisionRecallDisplay, RocCurveDisplay,
+                             accuracy_score, auc, confusion_matrix, f1_score,
+                             precision_recall_curve, precision_score,
+                             recall_score, roc_auc_score, balanced_accuracy_score, det_curve)
 
 matplotlib.use("Agg")
 
@@ -58,7 +47,7 @@ class ROC:
             name=f"ROC fold {fold}",
             alpha=0.3,
             lw=1,
-            ax=self.axes[epoch],
+            ax=self.axes[epoch]
         )
         interp_tpr = np.interp(self.mean_fpr, viz.fpr, viz.tpr)
         interp_tpr[0] = 0.0
@@ -111,9 +100,7 @@ class ROC:
             )
 
             # Plot diagonal
-            self.axes[epoch].plot(
-                [0, 1], [0, 1], linestyle="--", lw=2, color="r", alpha=0.8
-            )
+            self.axes[epoch].plot([0, 1], [0, 1], linestyle="--", lw=2, color="r", alpha=0.8)
 
             self.axes[epoch].set(
                 xlim=[-0.05, 1.05],
@@ -152,7 +139,12 @@ class PRC:
         Compute PRC and AUPRC and store the results globally
         """
         viz = PrecisionRecallDisplay.from_predictions(
-            y_true, y_pred, name=f"PR fold {fold}", alpha=0.3, lw=1, ax=self.axes[epoch]
+            y_true,
+            y_pred,
+            name=f"PR fold {fold}",
+            alpha=0.3,
+            lw=1,
+            ax=self.axes[epoch]
         )
         interp_prec = np.interp(self.mean_recall, viz.recall[::-1], viz.precision[::-1])
         interp_prec[0] = 1.0
@@ -209,12 +201,8 @@ class PRC:
             for f_score in f_scores:
                 x = np.linspace(0.01, 1)
                 y = f_score * x / (2 * x - f_score)
-                (l,) = self.axes[epoch].plot(
-                    x[y >= 0], y[y >= 0], color="gray", alpha=0.2
-                )
-                self.axes[epoch].annotate(
-                    "f1={0:0.1f}".format(f_score), xy=(0.9, y[45] + 0.02)
-                )
+                (l,) = self.axes[epoch].plot(x[y >= 0], y[y >= 0], color="gray", alpha=0.2)
+                self.axes[epoch].annotate("f1={0:0.1f}".format(f_score), xy=(0.9, y[45] + 0.02))
 
             self.axes[epoch].set(
                 xlim=[-0.05, 1.05],
@@ -234,22 +222,8 @@ class TMetrics:
     Metrics of interest for evaluating target variable predictions
     """
 
-    def __init__(
-        self,
-        ppv,
-        npv,
-        sensitivity,
-        specificity,
-        accuracy,
-        balanced_accuracy,
-        f1_1,
-        f1_0,
-        f1_macro,
-        auroc,
-        aupr,
-        fpr_at_k=None,
-        brier_score=None,
-    ):
+    def __init__(self, ppv, npv, sensitivity, specificity, accuracy, balanced_accuracy, f1_1, f1_0, f1_macro, auroc, aupr,
+                 fpr_at_k=None, brier_score=None):
         self.ppv = ppv
         self.npv = npv
         self.sensitivity = sensitivity
@@ -267,22 +241,11 @@ class TMetrics:
             self.brier_score = brier_score
 
     def get_tMetrics(self):
-        tmp = [
-            self.ppv,
-            self.npv,
-            self.sensitivity,
-            self.specificity,
-            self.accuracy,
-            self.balanced_accuracy,
-            self.f1_1,
-            self.f1_0,
-            self.f1_macro,
-            self.auroc,
-            self.aupr,
-        ]
-        if hasattr(self, "fpr_at_k"):
+        tmp = [self.ppv, self.npv, self.sensitivity, self.specificity, self.accuracy, self.balanced_accuracy, self.f1_1,
+               self.f1_0, self.f1_macro, self.auroc, self.aupr]
+        if hasattr(self, 'fpr_at_k'):
             tmp.append(self.fpr_at_k)
-        if hasattr(self, "brier_score"):
+        if hasattr(self, 'brier_score'):
             tmp.append(self.brier_score)
         metrics_array = np.array(tmp)
         return metrics_array
@@ -326,24 +289,24 @@ def calc_tMetrics(y_true, y_score):
         ks = [0.75, 0.80, 0.90, 0.95, 0.99]
         for k in ks:
             ind = np.argmin(np.abs(tpr - k))
-            fpr_at_k["FPR at " + str(k)] = np.round(fpr[ind], 3)
+            fpr_at_k['FPR at ' + str(k)] = np.round(fpr[ind], 3)
 
         brier_score = calc_brier_score(y_true=y_true, y_prob=y_score)
 
     else:
-        ppv = precision_score(y_true, y_pred, average="macro", zero_division=0)
-        npv = precision_score(y_true, y_pred, average="macro", zero_division=0)
+        ppv = precision_score(y_true, y_pred, average='macro', zero_division=0)
+        npv = precision_score(y_true, y_pred, average='macro', zero_division=0)
 
-        sensitivity = recall_score(y_true, y_pred, average="macro", zero_division=0)
-        specificity = recall_score(y_true, y_pred, average="macro", zero_division=0)
+        sensitivity = recall_score(y_true, y_pred, average='macro', zero_division=0)
+        specificity = recall_score(y_true, y_pred, average='macro', zero_division=0)
 
-        f1_macro = f1_score(y_true, y_pred, average="macro", zero_division=0)
+        f1_macro = f1_score(y_true, y_pred, average='macro', zero_division=0)
         f1_1 = -1.0
         f1_0 = -1.0
 
         balanced_accuracy = balanced_accuracy_score(y_true, y_pred)
 
-        auroc = roc_auc_score(y_true, y_score, average="macro", multi_class="ovr")
+        auroc = roc_auc_score(y_true, y_score, average='macro', multi_class='ovr')
 
         # TODO: implement multiclass versions of the metrics below
         aupr = -1.0
@@ -352,21 +315,8 @@ def calc_tMetrics(y_true, y_score):
 
         brier_score = None
 
-    return TMetrics(
-        ppv,
-        npv,
-        sensitivity,
-        specificity,
-        accuracy,
-        balanced_accuracy,
-        f1_1,
-        f1_0,
-        f1_macro,
-        auroc,
-        aupr,
-        fpr_at_k,
-        brier_score,
-    )
+    return TMetrics(ppv, npv, sensitivity, specificity, accuracy, balanced_accuracy, f1_1, f1_0, f1_macro, auroc, aupr,
+                    fpr_at_k, brier_score)
 
 
 class CMetrics:
@@ -385,7 +335,7 @@ class CMetrics:
 
     def get_cMetrics(self):
         tmp = [self.accuracy, self.f1_macro, self.auroc, self.aupr]
-        if hasattr(self, "brier_score"):
+        if hasattr(self, 'brier_score'):
             tmp.append(self.brier_score)
         cmetrics_array = np.array(tmp)
         return cmetrics_array
@@ -428,12 +378,8 @@ def calc_confusion(y_true, y_score, image_file_names):
 
     if n_classes == 2:
         file_names = np.array(image_file_names, dtype=object)
-        FP = np.intersect1d(
-            np.argwhere(y_pred == 1).flatten(), np.argwhere(y_true == 0).flatten()
-        )
-        FN = np.intersect1d(
-            np.argwhere(y_pred == 0).flatten(), np.argwhere(y_true == 1).flatten()
-        )
+        FP = np.intersect1d(np.argwhere(y_pred == 1).flatten(), np.argwhere(y_true == 0).flatten())
+        FN = np.intersect1d(np.argwhere(y_pred == 0).flatten(), np.argwhere(y_true == 1).flatten())
         tn, fp, fn, tp = conf_matrix.ravel()
         assert len(FP) == fp
         assert len(FN) == fn
@@ -452,4 +398,4 @@ def calc_brier_score(y_true, y_prob, rescale=False):
     else:
         y_prob_ = y_prob
     # NOTE: assumes a binary classification task
-    return np.mean((y_prob_ - y_true) ** 2)
+    return np.mean((y_prob_ - y_true)**2)

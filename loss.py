@@ -4,6 +4,7 @@ Utility methods for constructing loss functions
 
 from typing import Optional
 
+import numpy as np
 from sklearn.utils.class_weight import compute_class_weight
 import torch
 import torch.nn as nn
@@ -259,7 +260,7 @@ def calc_concept_weights(all_c):
     concepts_class_weights = []
     for concept_idx in range(len(all_c)):
         c_class_weights = compute_class_weight(
-            class_weight="balanced", classes=[0, 1], y=all_c[concept_idx]
+            class_weight="balanced", classes=np.array([0, 1]), y=all_c[concept_idx]
         )
         concepts_class_weights.append(c_class_weights)
     return concepts_class_weights
