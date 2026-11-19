@@ -1,7 +1,5 @@
 # Generated data (results of prepare_data.py)
 data_app/
-# data_app/*
-# !data_app/dicts_diagnosis/
 
 # Training outputs (logs, checkpoints, ROC/PR curves)
 runs/
