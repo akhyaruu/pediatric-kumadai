@@ -43,14 +43,21 @@ REAL_VALUED_ALL = [
     "CRP",
     "Appendix_Diameter",
 ]
-# [repro] Temporary concept set: 2 concepts. The paper uses the first 9 of:
+# Concept set: the first 5 concepts of the paper (was 2: Appendix_on_US, Free_Fluids). The paper uses the first 9 of:
 #   ['Appendix_on_US', 'Free_Fluids', 'Appendix_Wall_Layers', 'Target_Sign', 'Surrounding_Tissue_Reaction',
 #    'Pathological_Lymph_Nodes', 'Bowel_Wall_Thickening', 'Coprostasis', 'Meteorism', 'Enteritis',
 #    'Appendix_Diameter', 'Perforation', 'Appendicular_Abscess', 'Conglomerate_of_Bowel_Loops',
 #    'Gynecological_Findings']
-# Concepts must also be in TABULAR_FEATURES. Keep num_concepts / num_s_concepts in configs/repro/*.yaml equal to
-# len(CONCEPTS).
-CONCEPTS = ["Appendix_on_US", "Free_Fluids"]
+# Concepts must also be in TABULAR_FEATURES. The configs select the first num_concepts concepts of this list, so
+# configs/mvcbm_seq_lstm_diag.yaml (2 concepts) and configs/mvcbm_seq_lstm_diag_5c.yaml (5 concepts) both work with
+# the same dictionaries; keep the order of the first two concepts unchanged.
+CONCEPTS = [
+    "Appendix_on_US",
+    "Free_Fluids",
+    "Appendix_Wall_Layers",
+    "Target_Sign",
+    "Surrounding_Tissue_Reaction",
+]
 ALL_STEPS = ["deepfill", "crop", "dict", "split", "impute"]
 REPO_DIR = os.path.dirname(os.path.abspath(__file__))
 

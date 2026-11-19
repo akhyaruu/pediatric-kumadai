@@ -67,6 +67,9 @@ TABULAR_FEATURES = [
     "Paedriatic_Appendicitis_Score",
     "Appendix_on_US",
     "Free_Fluids",
+    "Appendix_Wall_Layers",
+    "Target_Sign",
+    "Surrounding_Tissue_Reaction",
 ]
 assert all(
     f in ALL_TABULAR_FEATURES for f in TABULAR_FEATURES

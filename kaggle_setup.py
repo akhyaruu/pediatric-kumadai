@@ -9,6 +9,7 @@ Kaggle mounts the dataset read-only under /kaggle/input; outputs are written to 
 """
 
 import os
+import re
 
 # Needed for deterministic cuBLAS (LSTM); must be set before CUDA is used (same as in train_mvcbm.py).
 os.environ.setdefault("CUBLAS_WORKSPACE_CONFIG", ":4096:8")
@@ -105,14 +106,43 @@ def print_environment():
         print("GPU: not available (Kaggle: Settings > Accelerator > GPU)")
 
 
-def summarize(results_per_seed, metrics=("t_auroc", "t_aupr", "t_balanced_accuracy", "t_f1_macro", "c0_auroc", "c1_auroc")):
-    """Table of the test metrics per seed, plus their mean and standard deviation over seeds."""
+def summarize(results_per_seed, metrics=("t_auroc", "t_aupr", "t_balanced_accuracy", "t_f1_macro"),
+              concept_metric="auroc"):
+    """
+    Table of the test metrics per seed, plus their mean and standard deviation over seeds. The concept metric
+    (default AUROC) is added for every concept found in the results (c0, c1, ...).
+    """
     import pandas as pd
 
-    rows = {seed: {m: res.get(m) for m in metrics} for seed, res in results_per_seed.items() if res is not None}
+    rows = {}
+    for seed, res in results_per_seed.items():
+        if res is None:
+            continue
+        concepts = sorted({k.split("_")[0] for k in res if re.fullmatch(r"c\d+_" + concept_metric, k)},
+                          key=lambda c: int(c[1:]))
+        rows[seed] = {m: res.get(m) for m in list(metrics) + [f"{c}_{concept_metric}" for c in concepts]}
     table = pd.DataFrame.from_dict(rows, orient="index")
     table.index.name = "seed"
     if len(table) > 1:
         table.loc["mean"] = table.mean()
         table.loc["std"] = table.iloc[:-1].std(ddof=1)
     return table
+
+
+def compare_runs(results_per_run, **kwargs):
+    """
+    One row per run (e.g. per config): mean of each test metric over seeds, with the standard deviation in
+    parentheses when there is more than one seed.
+    """
+    import pandas as pd
+
+    rows = {}
+    for run, results_per_seed in results_per_run.items():
+        table = summarize(results_per_seed, **kwargs)
+        if "mean" in table.index:
+            rows[run] = {m: f"{table.loc['mean', m]:.3f} ({table.loc['std', m]:.3f})" for m in table.columns}
+        else:
+            rows[run] = {m: f"{table[m].iloc[0]:.3f}" for m in table.columns}
+    comparison = pd.DataFrame.from_dict(rows, orient="index").fillna("-")
+    comparison.index.name = "run"
+    return comparison

@@ -57,7 +57,7 @@ encoder_arch: 'ResNet18'
 aggregator: 'lstm'
 training_mode: 'sequential'
 alpha: 1.0
-num_concepts: 2  # [repro] temporary: Appendix_on_US, Free_Fluids (paper: 9)
+num_concepts: 2  # first 2 concepts of prepare_data.CONCEPTS: Appendix_on_US, Free_Fluids (paper: 9)
 t_hidden_dim: 5
 norm_bottleneck: False
 attention: False
